@@ -21,6 +21,16 @@ class AnnonceController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $request->validate([
+            'budget_min' => 'nullable|numeric|min:0',
+            'budget_max' => 'nullable|numeric|min:0',
+            'type' => 'nullable|in:maison,appartement,terrain',
+            'mode' => 'nullable|in:location,vente',
+            'ville' => 'nullable|string|max:255',
+            'quartier' => 'nullable|string|max:255',
+            'per_page' => 'nullable|integer|min:1|max:50',
+        ]);
+
         $annonces = $this->recherche->search($request->only([
             'budget_min', 'budget_max', 'type', 'mode', 'ville', 'quartier', 'per_page',
         ]));

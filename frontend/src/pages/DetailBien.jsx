@@ -4,6 +4,7 @@ import AnnonceDetail from '../components/annonce/AnnonceDetail.jsx'
 import AvisForm from '../components/avis/AvisForm.jsx'
 import { getAnnonce } from '../api/annonceApi.js'
 import { checkFavori } from '../api/favoriApi.js'
+import { getLocations } from '../api/paiementApi.js'
 import { getAvis } from '../api/avisApi.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { Star } from 'lucide-react'
@@ -15,6 +16,7 @@ export default function DetailBien() {
   const [annonce, setAnnonce] = useState(null)
   const [favori, setFavori] = useState(false)
   const [avis, setAvis] = useState(null)
+  const [locationId, setLocationId] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -41,6 +43,18 @@ export default function DetailBien() {
       .then(({ data }) => setFavori(Boolean(data.favori)))
       .catch(() => {})
   }, [user, id])
+
+  // Un avis n'est possible que sur une location commune avec le propriétaire.
+  useEffect(() => {
+    const ownerId = annonce?.proprietaire?.id
+    if (!user || user.role !== 'locataire' || !ownerId) return
+    getLocations()
+      .then(({ data }) => {
+        const loc = (data?.data ?? []).find((l) => l.proprietaire_id === ownerId)
+        setLocationId(loc?.id ?? null)
+      })
+      .catch(() => {})
+  }, [user, annonce])
 
   const reloadAvis = () => {
     const ownerId = annonce?.proprietaire?.id
@@ -103,9 +117,10 @@ export default function DetailBien() {
               ))}
             </ul>
           )}
-          {user && user.role !== 'proprietaire' && annonce.proprietaire && (
+          {user && user.role === 'locataire' && annonce.proprietaire && locationId && (
             <AvisForm
               cibleUserId={annonce.proprietaire.id}
+              locationId={locationId}
               onSubmitted={reloadAvis}
             />
           )}

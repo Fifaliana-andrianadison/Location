@@ -37,6 +37,12 @@ class EtatDesLieuxController extends Controller
             'photos.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
+        $location = \App\Models\Location::find($request->location_id);
+        $user = $request->user();
+        if (! $user->isAdmin() && $location->proprietaire_id !== $user->id && $location->locataire_id !== $user->id) {
+            return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+
         $photos = [];
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {

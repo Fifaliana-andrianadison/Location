@@ -29,14 +29,15 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('annonces', [AnnonceController::class, 'index']);
 Route::get('annonces/{annonce}', [AnnonceController::class, 'show']);
+Route::get('avis', [AvisController::class, 'index']);
 
-Route::post('register', [AuthController::class, 'register']);
-Route::post('login', [AuthController::class, 'login']);
+Route::post('register', [AuthController::class, 'register'])->middleware('throttle:10,1');
+Route::post('login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
 /*
 | Assistant conversationnel (chatbot) — accès public
 */
-Route::post('chatbot', [ChatbotController::class, 'ask']);
+Route::post('chatbot', [ChatbotController::class, 'ask'])->middleware('throttle:20,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::middleware('role:proprietaire,admin')->group(function () {
         Route::apiResource('proprietes', ProprieteController::class)->except(['index']);
+        Route::put('proprietes/{propriete}/prix', [ProprieteController::class, 'changerPrix']);
         Route::apiResource('maisons', MaisonController::class)->except(['show']);
         Route::apiResource('appartements', AppartementController::class)->except(['show']);
         Route::apiResource('terrains', TerrainController::class)->except(['show']);
@@ -69,7 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
     /*
     | Contrats de bail + signature électronique + PDF
     */
-    Route::apiResource('contrats', ContratController::class);
+    Route::apiResource('contrats', ContratController::class)->only(['index', 'store', 'show']);
     Route::post('contrats/{contrat}/signer', [ContratController::class, 'signer']);
     Route::get('contrats/{contrat}/pdf', [ContratController::class, 'pdf']);
 
@@ -113,7 +115,7 @@ Route::middleware('auth:sanctum')->group(function () {
     /*
     | Avis / notation mutuelle
     */
-    Route::apiResource('avis', AvisController::class)->only(['index', 'store']);
+    Route::post('avis', [AvisController::class, 'store']);
 
     /*
     | Favoris

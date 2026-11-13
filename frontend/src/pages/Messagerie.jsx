@@ -12,16 +12,13 @@ export default function Messagerie() {
   const withUserId = Number(params.get('with_user')) || null
 
   useEffect(() => {
-    getConversations()
+    getConversations(withUserId ? { with_user: withUserId } : {})
       .then(({ data }) => {
         setConversations(data ?? [])
         if (withUserId) {
           const c = (data ?? []).find((x) => x.user?.id === withUserId)
           if (c) setSelected(c)
-          else {
-            const fake = { user: { id: withUserId, name: 'Interlocuteur' } }
-            setSelected(fake)
-          }
+
         }
       })
       .catch(() => {})

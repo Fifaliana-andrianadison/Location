@@ -30,6 +30,14 @@ class LitigeController extends Controller
 
     public function store(StoreLitigeRequest $request): JsonResponse
     {
+        if ($request->location_id) {
+            $location = \App\Models\Location::find($request->location_id);
+            $user = $request->user();
+            if (! $user->isAdmin() && $location->proprietaire_id !== $user->id && $location->locataire_id !== $user->id) {
+                return response()->json(['message' => 'Accès refusé.'], 403);
+            }
+        }
+
         $litige = Litige::create([
             'location_id' => $request->location_id,
             'auteur_id' => $request->user()->id,
@@ -43,7 +51,9 @@ class LitigeController extends Controller
 
     public function show(Request $request, Litige $litige): JsonResponse
     {
-        if (! $request->user()?->isAdmin() && $litige->auteur_id !== $request->user()?->id) {
+        $user = $request->user();
+        if (! $user?->isAdmin() && $litige->auteur_id !== $user?->id
+            && $litige->location?->proprietaire_id !== $user?->id) {
             return response()->json(['message' => 'Accès refusé.'], 403);
         }
 

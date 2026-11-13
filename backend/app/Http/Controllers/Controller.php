@@ -10,6 +10,21 @@ abstract class Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * L'utilisateur est-il admin ou propriétaire de ce bien ?
+     */
+    protected function ownsPropriete(\Illuminate\Http\Request $request, ?\App\Models\Propriete $propriete): bool
+    {
+        $user = $request->user();
+
+        return $user && $propriete && ($user->isAdmin() || $propriete->user_id === $user->id);
+    }
+
+    protected function forbidden(): JsonResponse
+    {
+        return response()->json(['message' => 'Accès refusé.'], 403);
+    }
+
     protected function paginated(LengthAwarePaginator $paginator, ?string $resource = null): JsonResponse
     {
         return response()->json([

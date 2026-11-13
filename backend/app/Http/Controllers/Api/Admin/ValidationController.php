@@ -33,6 +33,10 @@ class ValidationController extends Controller
      */
     public function valider(Request $request, Propriete $propriete): JsonResponse
     {
+        if ($propriete->verification === Propriete::VERIF_VERIFIEE) {
+            return response()->json(['message' => 'Ce bien est déjà validé.'], 422);
+        }
+
         $propriete->update([
             'verification' => Propriete::VERIF_VERIFIEE,
             'statut' => Propriete::STATUT_DISPONIBLE,

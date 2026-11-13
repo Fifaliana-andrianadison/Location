@@ -32,6 +32,11 @@ class User extends Authenticatable
         return $this->role === self::ROLE_PROPRIETAIRE;
     }
 
+    public function isLocataire(): bool
+    {
+        return $this->role === self::ROLE_LOCATAIRE;
+    }
+
     public function isVerified(): bool
     {
         return $this->verification_status === 'verifiee';

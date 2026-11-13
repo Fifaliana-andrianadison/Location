@@ -27,6 +27,10 @@ class ProprieteController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        if (! $request->user()?->isProprietaire() && ! $request->user()?->isAdmin()) {
+            return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+
         $query = Propriete::query()
             ->with(['localisation', 'images', 'maison', 'appartements', 'terrain', 'proprietaire'])
             ->latest();
@@ -56,7 +60,8 @@ class ProprieteController extends Controller
             'type' => $data['type'],
             'mode' => $data['mode'],
             'statut' => Propriete::STATUT_DISPONIBLE,
-            'verification' => Propriete::VERIF_VERIFIEE,
+            // Un bien publié par un propriétaire doit être validé par l'admin.
+            'verification' => $request->user()->isAdmin() ? Propriete::VERIF_VERIFIEE : Propriete::VERIF_EN_ATTENTE,
             'titre' => $data['titre'],
             'description' => $data['description'] ?? null,
             'prix' => $data['prix'],
@@ -159,15 +164,8 @@ class ProprieteController extends Controller
 
         $request->validate(['prix' => 'required|numeric|min:0']);
 
-        $ancienPrix = $propriete->prix;
+        // L'historique des prix est écrit par ProprieteObserver::updated().
         $propriete->update(['prix' => $request->prix]);
-
-        HistoriquePrix::create([
-            'propriete_id' => $propriete->id,
-            'ancien_prix' => $ancienPrix,
-            'nouveau_prix' => $request->prix,
-            'date_changement' => now(),
-        ]);
 
         return response()->json(['message' => 'Prix mis à jour.', 'prix' => $propriete->prix]);
     }

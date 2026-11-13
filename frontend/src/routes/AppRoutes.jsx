@@ -61,7 +61,7 @@ export default function AppRoutes() {
 
       <Route path="/" element={<Landing />} />
       <Route path="/recherche" element={<Site><ResultatsRecherche /></Site>} />
-      <Route path="/annonces/:id" element={<App><DetailBien /></App>} />
+      <Route path="/annonces/:id" element={<Site><DetailBien /></Site>} />
 
       <Route path="/dashboard" element={<App><Dashboard /></App>} />
       <Route path="/mes-candidatures" element={<App><MesCandidatures /></App>} />

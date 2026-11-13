@@ -50,6 +50,8 @@ class RechercheBudgetService
 
         $query->latest('annonces.created_at');
 
-        return $query->paginate($filters['per_page'] ?? 12)->withQueryString();
+        $perPage = max(1, min((int) ($filters['per_page'] ?? 12), 50));
+
+        return $query->paginate($perPage)->withQueryString();
     }
 }

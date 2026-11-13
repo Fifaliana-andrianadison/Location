@@ -95,22 +95,27 @@ class StatistiqueController extends Controller
     private function impayes($locations): float
     {
         $total = 0.0;
+        $dernierMois = now()->startOfMonth()->subMonth();
 
-        foreach ((clone $locations)->where('statut', Location::STATUT_ACTIF)->get() as $location) {
-            $moisImpayes = \Carbon\Carbon::parse($location->date_debut)->startOfMonth();
-            $fin = min(now()->startOfMonth()->subMonth(), \Carbon\Carbon::parse($location->date_fin ?? now())->startOfMonth());
+        $actives = (clone $locations)->where('statut', Location::STATUT_ACTIF)->get();
+        $payes = PaiementLoyer::whereIn('location_id', $actives->pluck('id'))
+            ->where('statut', PaiementLoyer::STATUT_CONFIRME)
+            ->get(['location_id', 'mois'])
+            ->groupBy('location_id')
+            ->map(fn ($rows) => $rows->map(fn ($r) => $r->mois->format('Y-m'))->all());
 
-            while ($moisImpayes->lte($fin)) {
-                $paye = PaiementLoyer::where('location_id', $location->id)
-                    ->where('statut', PaiementLoyer::STATUT_CONFIRME)
-                    ->where('mois', $moisImpayes->toDateString())
-                    ->exists();
+        foreach ($actives as $location) {
+            $mois = \Carbon\Carbon::parse($location->date_debut)->startOfMonth();
+            $fin = $location->date_fin
+                ? \Carbon\Carbon::parse($location->date_fin)->startOfMonth()->min($dernierMois)
+                : $dernierMois;
+            $dejaPayes = $payes->get($location->id, []);
 
-                if (! $paye) {
+            while ($mois->lte($fin)) {
+                if (! in_array($mois->format('Y-m'), $dejaPayes, true)) {
                     $total += $location->montant_loyer;
                 }
-
-                $moisImpayes->addMonth();
+                $mois->addMonth();
             }
         }
 

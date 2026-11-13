@@ -52,8 +52,12 @@ class AppartementController extends Controller
             'prix' => 'required|numeric|min:0',
         ]);
 
+        if (! $this->ownsPropriete($request, \App\Models\Propriete::find($request->propriete_id))) {
+            return $this->forbidden();
+        }
+
         $appartement = Appartement::create($request->only([
-            'propriete_id', 'maison_id', 'nb_pieces', 'nb_chambres',
+            'propriete_id', 'nb_pieces', 'nb_chambres',
             'nb_salles_bain', 'superficie', 'meuble', 'prix',
         ]) + ['statut' => Appartement::STATUT_EN_ATTENTE]);
 
@@ -73,6 +77,10 @@ class AppartementController extends Controller
 
     public function update(Request $request, Appartement $appartement): JsonResponse
     {
+        if (! $this->ownsPropriete($request, $appartement->propriete)) {
+            return $this->forbidden();
+        }
+
         $request->validate([
             'nb_pieces' => 'nullable|integer|min:1',
             'nb_chambres' => 'nullable|integer|min:1',
@@ -89,7 +97,7 @@ class AppartementController extends Controller
             'nb_pieces', 'nb_chambres', 'nb_salles_bain', 'superficie', 'meuble', 'prix', 'statut',
         ]));
 
-        if ($request->has('prix') && $ancienPrix !== (float) $request->prix) {
+        if ($request->has('prix') && (float) $ancienPrix !== (float) $request->prix) {
             HistoriquePrix::create([
                 'appartement_id' => $appartement->id,
                 'ancien_prix' => $ancienPrix,

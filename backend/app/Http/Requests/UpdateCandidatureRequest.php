@@ -21,7 +21,19 @@ class UpdateCandidatureRequest extends FormRequest
         return [
             'message' => 'nullable|string|max:2000',
             'budget' => 'nullable|numeric|min:0',
-            'statut' => 'sometimes|in:en_attente,acceptee,refusee',
+            // Seuls le propriétaire du bien et l'admin peuvent changer le statut.
+            'statut' => [
+                'sometimes',
+                'in:en_attente,acceptee,refusee',
+                function ($attr, $value, $fail) {
+                    $user = $this->user();
+                    $c = $this->route('candidature');
+                    $estProprio = $c?->annonce?->propriete?->user_id === $user?->id;
+                    if (! $user?->isAdmin() && ! $estProprio) {
+                        $fail('Seul le propriétaire peut modifier le statut.');
+                    }
+                },
+            ],
         ];
     }
 }

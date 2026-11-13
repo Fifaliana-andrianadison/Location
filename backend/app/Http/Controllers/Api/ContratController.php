@@ -53,6 +53,15 @@ class ContratController extends Controller
             return response()->json(['message' => 'Vous ne pouvez créer un contrat que sur vos propres biens.'], 403);
         }
 
+        $locataire = \App\Models\User::find($request->locataire_id);
+        if (! $locataire || ! $locataire->isLocataire()) {
+            return response()->json(['message' => 'Le destinataire doit être un locataire.'], 422);
+        }
+
+        if ($annonce->statut === \App\Models\Annonce::STATUT_OCCUPE || $annonce->statut === \App\Models\Annonce::STATUT_VENDU) {
+            return response()->json(['message' => 'Ce bien n\'est plus disponible.'], 422);
+        }
+
         $contrat = ContratBail::create([
             'annonce_id' => $annonce->id,
             'proprietaire_id' => $annonce->propriete->user_id,
@@ -94,9 +103,19 @@ class ContratController extends Controller
     {
         $user = $request->user();
 
+        if ($contrat->statut === ContratBail::STATUT_SIGNE) {
+            return response()->json(['message' => 'Ce contrat est déjà signé.'], 422);
+        }
+
         if ($contrat->proprietaire_id === $user->id) {
+            if ($contrat->signature_proprietaire) {
+                return response()->json(['message' => 'Vous avez déjà signé ce contrat.'], 422);
+            }
             $contrat->update(['signature_proprietaire' => $request->signature]);
         } elseif ($contrat->locataire_id === $user->id) {
+            if ($contrat->signature_locataire) {
+                return response()->json(['message' => 'Vous avez déjà signé ce contrat.'], 422);
+            }
             $contrat->update(['signature_locataire' => $request->signature]);
         } else {
             return response()->json(['message' => 'Accès refusé.'], 403);
@@ -107,7 +126,7 @@ class ContratController extends Controller
         if ($contrat->signature_proprietaire && $contrat->signature_locataire) {
             $contrat->update(['statut' => ContratBail::STATUT_SIGNE]);
 
-            Location::create([
+            Location::firstOrCreate(['contrat_bail_id' => $contrat->id], [
                 'contrat_bail_id' => $contrat->id,
                 'appartement_id' => $contrat->annonce?->appartement_id,
                 'locataire_id' => $contrat->locataire_id,

@@ -18,8 +18,7 @@ class StoreCandidatureRequest extends FormRequest
             'message' => 'nullable|string|max:2000',
             'budget' => 'nullable|numeric|min:0',
             'documents' => 'nullable|array',
-            'documents.*.type' => 'required_with:documents|in:cin,revenu,contrat,autre',
-            'documents.*.file' => 'required_with:documents|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'documents.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
     }
 }

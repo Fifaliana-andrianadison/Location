@@ -34,6 +34,10 @@ class TerrainController extends Controller
             'titre_foncier' => 'nullable|string|max:255',
         ]);
 
+        if (! $this->ownsPropriete($request, \App\Models\Propriete::find($request->propriete_id))) {
+            return $this->forbidden();
+        }
+
         $terrain = Terrain::create($request->only([
             'propriete_id', 'superficie', 'titre_foncier',
         ]) + ['statut' => Terrain::STATUT_EN_ATTENTE]);
@@ -45,6 +49,10 @@ class TerrainController extends Controller
 
     public function update(Request $request, Terrain $terrain): JsonResponse
     {
+        if (! $this->ownsPropriete($request, $terrain->propriete)) {
+            return $this->forbidden();
+        }
+
         $request->validate([
             'superficie' => 'nullable|numeric|min:0',
             'titre_foncier' => 'nullable|string|max:255',
@@ -55,5 +63,16 @@ class TerrainController extends Controller
         $terrain->propriete->refresh();
 
         return response()->json($terrain->load('propriete'));
+    }
+
+    public function destroy(Request $request, Terrain $terrain): JsonResponse
+    {
+        if (! $this->ownsPropriete($request, $terrain->propriete)) {
+            return $this->forbidden();
+        }
+
+        $terrain->delete();
+
+        return response()->json(['message' => 'Terrain supprimé.']);
     }
 }

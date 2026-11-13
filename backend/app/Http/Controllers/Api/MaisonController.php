@@ -33,6 +33,10 @@ class MaisonController extends Controller
             'meuble' => 'nullable|boolean',
         ]);
 
+        if (! $this->ownsPropriete($request, \App\Models\Propriete::find($request->propriete_id))) {
+            return $this->forbidden();
+        }
+
         $maison = Maison::create($request->only([
             'propriete_id', 'nb_etages', 'nb_chambres', 'nb_salles_bain', 'superficie', 'meuble',
         ]));
@@ -51,6 +55,10 @@ class MaisonController extends Controller
 
     public function update(Request $request, Maison $maison): JsonResponse
     {
+        if (! $this->ownsPropriete($request, $maison->propriete)) {
+            return $this->forbidden();
+        }
+
         $request->validate([
             'nb_etages' => 'nullable|integer|min:0',
             'nb_chambres' => 'nullable|integer|min:1',
@@ -66,5 +74,16 @@ class MaisonController extends Controller
         $maison->propriete->refresh();
 
         return response()->json($maison->load('propriete'));
+    }
+
+    public function destroy(Request $request, Maison $maison): JsonResponse
+    {
+        if (! $this->ownsPropriete($request, $maison->propriete)) {
+            return $this->forbidden();
+        }
+
+        $maison->delete();
+
+        return response()->json(['message' => 'Maison supprimée.']);
     }
 }

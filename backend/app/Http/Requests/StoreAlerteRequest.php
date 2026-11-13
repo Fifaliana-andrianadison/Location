@@ -15,7 +15,7 @@ class StoreAlerteRequest extends FormRequest
     {
         return [
             'budget_min' => 'nullable|numeric|min:0',
-            'budget_max' => 'nullable|numeric|min:0|gte:budget_min',
+            'budget_max' => ['nullable', 'numeric', 'min:0', $this->isMethod('POST') ? 'gte:budget_min' : 'gte:0'],
             'type' => 'nullable|in:maison,appartement,terrain',
             'mode' => 'nullable|in:location,vente',
             'ville' => 'nullable|string|max:255',

@@ -30,6 +30,10 @@ class AvisController extends Controller
 
     public function store(StoreAvisRequest $request): JsonResponse
     {
+        if (Avis::where('auteur_id', $request->user()->id)->where('location_id', $request->location_id)->exists()) {
+            return response()->json(['message' => 'Vous avez déjà donné un avis pour cette location.'], 422);
+        }
+
         $avis = Avis::create([
             'auteur_id' => $request->user()->id,
             'cible_user_id' => $request->cible_user_id,

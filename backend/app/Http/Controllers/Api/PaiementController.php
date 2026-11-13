@@ -62,7 +62,7 @@ class PaiementController extends Controller
             );
             $reference = $resultat['reference'];
         } else {
-            $reference = 'ESP-'.strtoupper(uniqid());
+            $reference = ($methode === 'virement' ? 'VIR-' : 'ESP-').strtoupper(uniqid());
         }
 
         $paiement = PaiementLoyer::create([
@@ -76,7 +76,7 @@ class PaiementController extends Controller
 
         PaiementEffectue::dispatch($paiement);
 
-        $this->notifications->envoyer(
+        if ($location->proprietaire) $this->notifications->envoyer(
             $location->proprietaire,
             \App\Models\Notification::TYPE_PAIEMENT,
             'Paiement reçu',
@@ -95,6 +95,10 @@ class PaiementController extends Controller
         if (! $request->user()?->isAdmin()
             && $paiement->location?->proprietaire_id !== $request->user()?->id) {
             return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+
+        if ($paiement->statut === PaiementLoyer::STATUT_CONFIRME) {
+            return response()->json(['message' => 'Paiement déjà confirmé.'], 422);
         }
 
         $paiement->update([

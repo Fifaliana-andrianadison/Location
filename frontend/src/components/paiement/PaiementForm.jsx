@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Smartphone, Send } from 'lucide-react'
 import { createPaiement } from '../../api/paiementApi.js'
 import { formatAr } from '../../utils/format.js'
+import DatePicker from '../common/DatePicker.jsx'
 
 const METHODES = {
   mvola: 'MVola',
@@ -53,7 +54,7 @@ export default function PaiementForm({ location, onPaid }) {
         <div className="form-grid">
           <div className="form-row">
             <label>Mois concerné</label>
-            <input type="month" value={mois} onChange={(e) => setMois(e.target.value)} required />
+            <DatePicker mode="month" value={mois} onChange={setMois} required />
           </div>
           <div className="form-row">
             <label>Montant (Ar)</label>

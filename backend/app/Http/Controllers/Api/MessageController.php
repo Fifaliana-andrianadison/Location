@@ -25,14 +25,25 @@ class MessageController extends Controller
                 ->pluck('receiver_id'))
             ->filter(fn ($id) => (int) $id !== $user->id);
 
-        // Contacts par défaut selon le rôle
+        // Contacts par défaut : interlocuteurs liés par une location, un contrat ou une candidature.
         if ($user->isAdmin()) {
             $ids = $ids->merge(\App\Models\User::where('role', \App\Models\User::ROLE_PROPRIETAIRE)->pluck('id'));
-        } elseif ($user->isProprietaire()) {
-            $ids = $ids->merge(\App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->pluck('id'));
-            $ids = $ids->merge(\App\Models\User::where('role', \App\Models\User::ROLE_LOCATAIRE)->pluck('id'));
         } else {
-            $ids = $ids->merge(\App\Models\User::where('role', \App\Models\User::ROLE_PROPRIETAIRE)->pluck('id'));
+            $ids = $ids->merge(\App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->pluck('id'));
+            $ids = $ids->merge($user->locationsAsLocataire()->pluck('proprietaire_id'))
+                ->merge($user->locationsAsProprietaire()->pluck('locataire_id'))
+                ->merge($user->contrats()->pluck('proprietaire_id'))
+                ->merge($user->contratsProprietaire()->pluck('locataire_id'));
+            if ($user->isProprietaire()) {
+                $ids = $ids->merge(\App\Models\Candidature::whereHas('annonce.propriete', fn ($q) => $q->where('user_id', $user->id))->pluck('locataire_id'));
+            } else {
+                $ids = $ids->merge(\App\Models\Propriete::whereHas('annonce.candidatures', fn ($q) => $q->where('locataire_id', $user->id))->pluck('user_id'));
+            }
+        }
+
+        // Interlocuteur explicitement demandé (ex. depuis une annonce).
+        if ($request->filled('with_user')) {
+            $ids->push((int) $request->with_user);
         }
 
         $ids = $ids->filter(fn ($id) => (int) $id !== $user->id)
@@ -40,10 +51,12 @@ class MessageController extends Controller
             ->values();
 
         $conversations = \App\Models\User::whereIn('id', $ids)->get()->map(function ($interlocuteur) use ($user) {
-            $dernier = Message::where(function ($q) use ($user, $interlocuteur) {
-                $q->where('sender_id', $user->id)->where('receiver_id', $interlocuteur->id);
-            })->orWhere(function ($q) use ($user, $interlocuteur) {
-                $q->where('sender_id', $interlocuteur->id)->where('receiver_id', $user->id);
+            $dernier = Message::where(function ($outer) use ($user, $interlocuteur) {
+                $outer->where(function ($q) use ($user, $interlocuteur) {
+                    $q->where('sender_id', $user->id)->where('receiver_id', $interlocuteur->id);
+                })->orWhere(function ($q) use ($user, $interlocuteur) {
+                    $q->where('sender_id', $interlocuteur->id)->where('receiver_id', $user->id);
+                });
             })->latest()->first();
 
             $nonLus = Message::where('sender_id', $interlocuteur->id)
@@ -57,7 +70,7 @@ class MessageController extends Controller
                 'dernier_a' => $dernier?->created_at,
                 'non_lus' => $nonLus,
             ];
-        })->sortByDesc('dernier_a')->values();
+        })->sortByDesc(fn ($c) => $c['dernier_a']?->timestamp ?? 0)->values();
 
         return response()->json($conversations);
     }
@@ -69,10 +82,14 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
-        $query = Message::where(function ($q) use ($user, $request) {
-            $q->where('sender_id', $user->id)->where('receiver_id', $request->with_user);
-        })->orWhere(function ($q) use ($user, $request) {
-            $q->where('sender_id', $request->with_user)->where('receiver_id', $user->id);
+        $request->validate(['with_user' => 'required|integer|exists:users,id']);
+
+        $query = Message::where(function ($outer) use ($user, $request) {
+            $outer->where(function ($q) use ($user, $request) {
+                $q->where('sender_id', $user->id)->where('receiver_id', $request->with_user);
+            })->orWhere(function ($q) use ($user, $request) {
+                $q->where('sender_id', $request->with_user)->where('receiver_id', $user->id);
+            });
         });
 
         if ($request->has('location_id')) {

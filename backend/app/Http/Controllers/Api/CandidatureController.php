@@ -42,7 +42,9 @@ class CandidatureController extends Controller
      */
     public function store(StoreCandidatureRequest $request): JsonResponse
     {
-        $request->validate(['annonce_id' => 'required|integer|exists:annonces,id']);
+        if (! $request->user()->isLocataire()) {
+            return response()->json(['message' => 'Seuls les locataires peuvent postuler.'], 403);
+        }
 
         $existant = Candidature::where('annonce_id', $request->annonce_id)
             ->where('locataire_id', $request->user()->id)
@@ -69,7 +71,7 @@ class CandidatureController extends Controller
                 DocumentLocataire::create([
                     'user_id' => $request->user()->id,
                     'candidature_id' => $candidature->id,
-                    'type' => $doc->getClientOriginalExtension(),
+                    'type' => strtolower($doc->getClientOriginalExtension()) ?: 'autre',
                     'path' => $path,
                 ]);
             }
@@ -96,6 +98,17 @@ class CandidatureController extends Controller
         $candidature->update($request->only(['message', 'budget', 'statut']));
 
         return response()->json(new CandidatureResource($candidature->load(['annonce', 'locataire', 'documents'])));
+    }
+
+    public function destroy(Request $request, Candidature $candidature): JsonResponse
+    {
+        if (! $request->user()->isAdmin() && $candidature->locataire_id !== $request->user()->id) {
+            return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+
+        $candidature->delete();
+
+        return response()->json(['message' => 'Candidature supprimée.']);
     }
 
     private function canView(Request $request, Candidature $candidature): bool

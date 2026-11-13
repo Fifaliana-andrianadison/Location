@@ -64,7 +64,7 @@ class ProprieteObserver
         Annonce::updateOrCreate(
             ['propriete_id' => $propriete->id],
             [
-                'appartement_id' => $propriete->type === Propriete::TYPE_APPARTEMENT ? $appartement->id ?? null : null,
+                'appartement_id' => $propriete->type === Propriete::TYPE_APPARTEMENT ? $appartement?->id : null,
                 'type' => $propriete->type,
                 'mode' => $propriete->mode,
                 'titre' => $propriete->titre,

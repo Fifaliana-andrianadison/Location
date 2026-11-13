@@ -44,7 +44,7 @@ class LocationController extends Controller
         }
 
         $request->validate([
-            'date_fin' => 'nullable|date|after:date_debut',
+            'date_fin' => ['nullable', 'date', 'after:'.$location->date_debut->toDateString()],
             'statut' => 'sometimes|in:actif,termine,resilie',
         ]);
 

@@ -10,8 +10,7 @@ class GenererRecu
     {
         $paiement = $event->paiement;
 
-        // TODO: générer un reçu PDF dédié via un service RécuService.
-        $paiement->recu_path = $paiement->recu_path ?? "recus/{$paiement->id}-{$paiement->reference}.pdf";
-        $paiement->save();
+        // Le reçu PDF dédié n'est pas encore généré : on ne stocke donc pas de chemin fictif.
+        // TODO: générer le reçu via un service dédié puis renseigner recu_path.
     }
 }
