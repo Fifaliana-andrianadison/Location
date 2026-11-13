@@ -68,7 +68,7 @@ export default function AppLayout({ children }) {
     <div className="layout">
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand">
-          <span className="logo"><MapPin size={17} /></span>
+          <span className="logo" style={{ background: '#e4002b' }}>T&T</span>
           <span className="brand-name">Tany &amp; Toerana</span>
         </div>
 

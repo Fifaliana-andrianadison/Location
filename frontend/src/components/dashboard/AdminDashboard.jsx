@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Users, Building2, Home, FileText, ListChecks, Wallet, Scale, ShieldCheck } from 'lucide-react'
+import { Users, Building2, Home, FileText, ListChecks, Wallet, Scale, ShieldCheck, BarChart3, PieChart as PieIcon, LineChart as LineIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getStatistiquesAdmin } from '../../api/adminApi.js'
 import { getValidations } from '../../api/adminApi.js'
 import { formatAr } from '../../utils/format.js'
+import { Bar, PieChart, LineChart } from './Charts.jsx'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null)
@@ -86,6 +87,37 @@ export default function AdminDashboard() {
             <div className="stat-label">Litiges ouverts ({stats.litiges.resolus} résolus)</div>
           </div>
         </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="card">
+          <h2><PieIcon size={15} /> Biens par type</h2>
+          <PieChart
+            data={[
+              { label: 'Maisons', value: stats.biens.par_type.maison, color: '#4f46e5' },
+              { label: 'Appartements', value: stats.biens.par_type.appartement, color: '#10b981' },
+              { label: 'Terrains', value: stats.biens.par_type.terrain, color: '#f59e0b' },
+            ]}
+            total={stats.biens.total}
+          />
+        </div>
+        <div className="card">
+          <h2><BarChart3 size={15} /> Paiements & locations</h2>
+          <Bar label="Total paiements" value={stats.paiements.total} max={Math.max(stats.paiements.total, 1)} color="#4f46e5" />
+          <Bar label="Confirmés" value={stats.paiements.confirme} max={Math.max(stats.paiements.total, 1)} color="#10b981" />
+          <Bar label="En attente" value={stats.paiements.en_attente} max={Math.max(stats.paiements.total, 1)} color="#f59e0b" />
+          <Bar label="Locations actives" value={stats.locations.actives} max={Math.max(stats.locations.actives + stats.locations.terminees, 1)} color="#3b82f6" />
+          <Bar label="Locations terminées" value={stats.locations.terminees} max={Math.max(stats.locations.actives + stats.locations.terminees, 1)} color="#94a3b8" />
+        </div>
+      </div>
+
+      <div className="card">
+        <h2><LineIcon size={15} /> Tendance paiements</h2>
+        <LineChart
+          values={[stats.paiements.en_attente, stats.paiements.confirme, stats.paiements.total]}
+          labels={['En attente', 'Confirmés', 'Total']}
+          color="#4f46e5"
+        />
       </div>
 
       <div className="card">

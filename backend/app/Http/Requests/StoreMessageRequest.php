@@ -16,7 +16,8 @@ class StoreMessageRequest extends FormRequest
         return [
             'receiver_id' => 'required|exists:users,id|different:sender_id',
             'location_id' => 'nullable|exists:locations,id',
-            'contenu' => 'required|string|max:5000',
+            'contenu' => 'nullable|string|max:5000',
+            'attachment' => 'nullable|file|max:5120',
         ];
     }
 }

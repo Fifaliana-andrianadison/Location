@@ -6,7 +6,7 @@ import MapView from './MapView.jsx'
 import CandidatureForm from '../candidature/CandidatureForm.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { addFavori, removeFavori } from '../../api/favoriApi.js'
-import { assetUrl, formatAr, formatDate, TYPE_LABELS, MODE_LABELS, label } from '../../utils/format.js'
+import { formatAr, formatDate, TYPE_LABELS, MODE_LABELS, label } from '../../utils/format.js'
 
 export default function AnnonceDetail({ annonce, isFavori, onToggleFavori }) {
   const { user } = useAuth()
@@ -40,9 +40,9 @@ export default function AnnonceDetail({ annonce, isFavori, onToggleFavori }) {
   return (
     <div className="detail-bien">
       <div className="detail-main">
-        <ImageGallery images={annonce.images} principale={annonce.image_principale} />
+        <ImageGallery images={annonce.images} principale={annonce.image_principale} type={annonce.type} seed={annonce.id} />
 
-        <div className="card detail-info">
+        <div className="card detail-info sl-detail-card">
           <div className="detail-badges">
             <span className="badge badge-indigo">{TYPE_LABELS[annonce.type] ?? annonce.type}</span>
             <span className="badge badge-blue">{MODE_LABELS[annonce.mode] ?? annonce.mode}</span>

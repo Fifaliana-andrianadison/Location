@@ -11,7 +11,7 @@ class Message extends Model
     use HasFactory;
 
     protected $fillable = [
-        'sender_id', 'receiver_id', 'location_id', 'contenu', 'lu', 'lu_at',
+        'sender_id', 'receiver_id', 'location_id', 'contenu', 'attachment', 'reactions', 'lu', 'lu_at',
     ];
 
     protected function casts(): array
@@ -19,6 +19,7 @@ class Message extends Model
         return [
             'lu' => 'boolean',
             'lu_at' => 'datetime',
+            'reactions' => 'array',
         ];
     }
 

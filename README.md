@@ -9,27 +9,33 @@ Application web de **recherche, location et vente immobilière** à Madagascar :
 ## 1. Installation
 
 ### Prérequis
-- PHP ≥ 8.2 + Composer
-- MySQL / MariaDB
+- PHP ≥ 8.3 + Composer (requis par `backend/composer.json`, Laravel 13)
+- MySQL / MariaDB (prod) ou SQLite (dev rapide, défaut)
 - Node.js ≥ 18
-- (Optionnel) clé API Pexels pour les photos des annonces de démo
+- (Optionnel) clé API Pexels pour les photos des annonces de démo (`PEXELS_API_KEY`)
+- (Optionnel) clé API compatible OpenAI pour le chatbot (`CHATBOT_API_KEY`, sinon fallback local)
 
 ### Backend (Laravel)
 ```bash
 cd backend
 composer install
-cp .env.example .env          # puis configurez DB_DATABASE, DB_USERNAME, DB_PASSWORD
-php artisan key:generate
+cp .env.example .env          # SQLite par défaut, ou passez DB_CONNECTION=mysql + DB_HOST/PORT/DATABASE/USERNAME/PASSWORD
+php artisan key:generate      # déjà renseigné si .env créé par copie du nouvel exemple
+touch database/database.sqlite # si DB_CONNECTION=sqlite
 php artisan migrate
+php artisan storage:link      # obligatoire : expose /storage (photos biens)
 php artisan db:seed           # admin + données de démonstration complètes
 php artisan serve             # → http://localhost:8000
+# Optionnel (jobs/notifications) : php artisan queue:listen
 ```
 
 ### Frontend (React)
 ```bash
 cd frontend
+cp .env.example .env          # VITE_API_URL=/api en dev (proxy Vite), URL complète en prod
 npm install
 npm run dev                   # → http://localhost:5173
+# Prod : renseignez VITE_API_URL=http://localhost:8000/api puis npm run build
 ```
 
 La landing page s'affiche en premier : cliquez sur **Connexion / Inscription** en haut à droite.

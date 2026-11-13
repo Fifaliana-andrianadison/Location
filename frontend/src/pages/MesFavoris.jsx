@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Heart, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getFavoris, removeFavori } from '../api/favoriApi.js'
-import { assetUrl, formatAr, TYPE_LABELS } from '../utils/format.js'
+import { annonceImage, formatAr, TYPE_LABELS } from '../utils/format.js'
 
 export default function MesFavoris() {
   const [favoris, setFavoris] = useState([])
@@ -44,11 +44,7 @@ export default function MesFavoris() {
           {favoris.map((f) => (
             <div key={f.id} className="card favori-card">
               <Link to={`/annonces/${f.annonce?.id}`} className="favori-link">
-                {f.annonce?.image_principale || f.annonce?.images?.[0]?.path ? (
-                  <img src={assetUrl(f.annonce?.image_principale || f.annonce?.images?.[0]?.path)} alt={f.annonce?.titre} />
-                ) : (
-                  <div className="prop-img-empty">Aucune photo</div>
-                )}
+                <img src={annonceImage(f.annonce || {})} alt={f.annonce?.titre} loading="lazy" />
                 <div className="favori-body">
                   <span className="badge badge-indigo">{TYPE_LABELS[f.annonce?.type] ?? f.annonce?.type}</span>
                   <h3>{f.annonce?.titre}</h3>

@@ -1,31 +1,28 @@
 import { useState } from 'react'
-import { assetUrl } from '../../utils/format.js'
+import { annonceImages } from '../../utils/format.js'
 
-export default function ImageGallery({ images = [], principale }) {
-  const paths = images?.length > 0 ? images : principale ? [principale] : []
+export default function ImageGallery({ images = [], principale, type, seed = 0 }) {
+  const paths = annonceImages({ images, image_principale: principale, type, id: seed })
   const [actif, setActif] = useState(0)
-
-  if (paths.length === 0) {
-    return <div className="gallery-empty">Aucune photo disponible</div>
-  }
 
   const courant = paths[Math.min(actif, paths.length - 1)]
 
   return (
-    <div className="gallery-main">
-      <div className="gallery-hero">
-        <img src={assetUrl(courant)} alt="Photo du bien" />
+    <div className="sl-gallery">
+      <div className="sl-gallery-hero">
+        <img src={courant} alt="Photo du bien" />
+        <span className="sl-card-photos">{paths.length} photos</span>
       </div>
       {paths.length > 1 && (
-        <div className="gallery-thumbs">
+        <div className="sl-gallery-thumbs">
           {paths.map((p, i) => (
             <button
               key={i}
               type="button"
-              className={`thumb ${i === actif ? 'active' : ''}`}
+              className={`sl-thumb ${i === actif ? 'active' : ''}`}
               onClick={() => setActif(i)}
             >
-              <img src={assetUrl(p)} alt={`Photo ${i + 1}`} />
+              <img src={p} alt={`Photo ${i + 1}`} loading="lazy" />
             </button>
           ))}
         </div>

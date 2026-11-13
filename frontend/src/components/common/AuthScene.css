@@ -1,0 +1,211 @@
+/* Maquette de quartier 3D — couleurs de la plateforme (rouge #e4002b, marine #0b1e3b).
+   Toutes les classes commencent par "s3-" ou "scene3d". Le fond marine vient de .auth-hero. */
+.scene3d {
+  position: absolute; inset: 0; z-index: 1;
+  overflow: hidden; perspective: 1600px;
+  display: flex; align-items: center; justify-content: center;
+}
+.scene3d *, .scene3d *::before, .scene3d *::after { box-sizing: border-box; }
+
+.s3-text { position: absolute; top: 2.4rem; left: 2.6rem; z-index: 3; max-width: 340px; pointer-events: none; }
+.s3-bar { display: block; width: 44px; height: 4px; border-radius: 4px; background: var(--primary); margin-bottom: 0.9rem; }
+.s3-text h1 { margin: 0 0 0.4rem; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: #fff; }
+.s3-text p { margin: 0; color: #cbd5e1; line-height: 1.5; font-size: 0.92rem; }
+
+.s3-stage { width: 560px; height: 560px; transform: translateY(50px) scale(var(--s, 1)); flex-shrink: 0; }
+.s3-world {
+  position: relative; width: 560px; height: 560px;
+  transform-style: preserve-3d;
+  transform: rotateX(58deg) rotateZ(-38deg);
+  animation: s3-turn 18s ease-in-out 6s infinite alternate;
+}
+@keyframes s3-turn {
+  from { transform: rotateX(58deg) rotateZ(-38deg); }
+  to   { transform: rotateX(58deg) rotateZ(-30deg); }
+}
+
+/* ---------- Terrain et routes ---------- */
+.s3-ground {
+  position: absolute; inset: -40px; border-radius: 20px;
+  background:
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px) 0 0 / 40px 40px,
+    radial-gradient(circle at 30% 25%, #2d5c96, #1f4274 60%, #173561);
+  box-shadow: 0 0 0 12px #0b1e3b, 0 0 0 14px var(--primary), 0 55px 90px rgba(0, 0, 0, 0.55);
+}
+.s3-road { position: absolute; background: #0b1e3b; transform: translateZ(1px); }
+.s3-road.h { left: -40px; width: 640px; top: 250px; height: 60px; }
+.s3-road.v { top: -40px; height: 640px; left: 250px; width: 60px; }
+.s3-road::after { content: ''; position: absolute; }
+.s3-road.h::after { left: 0; right: 0; top: 29px; height: 2px; background: repeating-linear-gradient(90deg, #fff 0 14px, transparent 14px 28px); }
+.s3-road.v::after { top: 0; bottom: 0; left: 29px; width: 2px; background: repeating-linear-gradient(0deg, #fff 0 14px, transparent 14px 28px); }
+.s3-cross { position: absolute; left: 250px; top: 250px; width: 60px; height: 60px; background: #0b1e3b; transform: translateZ(2px); }
+
+/* ---------- Bâtiments ---------- */
+.s3-bld { position: absolute; transform-style: preserve-3d; }
+.s3-bld span { position: absolute; display: block; }
+.s3-lot {
+  inset: -14px; background: #dfe6ef; border: 2px solid #fff;
+  border-radius: 4px; transform: translateZ(1px);
+}
+.s3-wall { background-color: var(--c); }
+.s3-wall.front, .s3-wall.back {
+  left: 0; width: 100%; height: 0;
+  animation: s3-gh 1.8s cubic-bezier(0.2, 0.9, 0.2, 1) var(--delay) forwards;
+}
+.s3-wall.front { bottom: 0; transform-origin: bottom; transform: rotateX(-90deg); }
+.s3-wall.back  { top: 0; transform-origin: top; transform: rotateX(90deg); filter: brightness(0.72); }
+.s3-wall.left, .s3-wall.right {
+  top: 0; height: 100%; width: 0;
+  animation: s3-gw 1.8s cubic-bezier(0.2, 0.9, 0.2, 1) var(--delay) forwards;
+}
+.s3-wall.right { right: 0; transform-origin: right; transform: rotateY(90deg); filter: brightness(0.86); }
+.s3-wall.left  { left: 0; transform-origin: left; transform: rotateY(-90deg); filter: brightness(0.66); }
+@keyframes s3-gh { to { height: var(--h); } }
+@keyframes s3-gw { to { width: var(--h); } }
+
+/* Maison : porte rouge + fenêtres */
+.s3-bld.house .s3-wall.front {
+  background-image:
+    linear-gradient(var(--primary), var(--primary)),
+    linear-gradient(#bcd6f5, #bcd6f5), linear-gradient(#0b1e3b, #0b1e3b),
+    linear-gradient(#bcd6f5, #bcd6f5), linear-gradient(#0b1e3b, #0b1e3b);
+  background-repeat: no-repeat;
+  background-size: 14px 26px, 12px 12px, 16px 16px, 12px 12px, 16px 16px;
+  background-position:
+    left calc(var(--w) * 0.5 - 7px) bottom 0,
+    left calc(var(--w) * 0.2 - 6px) bottom 24px,
+    left calc(var(--w) * 0.2 - 8px) bottom 22px,
+    left calc(var(--w) * 0.8 - 6px) bottom 24px,
+    left calc(var(--w) * 0.8 - 8px) bottom 22px;
+}
+.s3-bld.house .s3-wall.right {
+  background-image: linear-gradient(#bcd6f5, #bcd6f5), linear-gradient(#0b1e3b, #0b1e3b);
+  background-repeat: no-repeat; background-size: 12px 12px, 16px 16px;
+  background-position: right 24px top calc(var(--d) * 0.5 - 6px), right 22px top calc(var(--d) * 0.5 - 8px);
+}
+.s3-bld.house .s3-wall.left {
+  background-image: linear-gradient(#bcd6f5, #bcd6f5), linear-gradient(#0b1e3b, #0b1e3b);
+  background-repeat: no-repeat; background-size: 12px 12px, 16px 16px;
+  background-position: left 24px top calc(var(--d) * 0.5 - 6px), left 22px top calc(var(--d) * 0.5 - 8px);
+}
+
+/* Toit en pente */
+.s3-roof {
+  inset: 0; transform-style: preserve-3d;
+  animation: s3-gt 1.8s cubic-bezier(0.2, 0.9, 0.2, 1) var(--delay) forwards;
+}
+.s3-rs {
+  left: 0; width: 100%; height: var(--rl);
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0 2px, transparent 2px 9px), var(--rc);
+}
+.s3-rs.front { bottom: 0; transform-origin: bottom; transform: rotateX(calc(var(--ra) * -1)); }
+.s3-rs.back  { top: 0; transform-origin: top; transform: rotateX(var(--ra)); filter: brightness(0.75); }
+.s3-gb { top: 0; height: 100%; width: var(--r); background: var(--c); }
+.s3-gb.left  { left: 0; transform-origin: left; transform: rotateY(-90deg); clip-path: polygon(0 0, 0 100%, 100% 50%); filter: brightness(0.66); }
+.s3-gb.right { right: 0; transform-origin: right; transform: rotateY(90deg); clip-path: polygon(100% 0, 100% 100%, 0 50%); filter: brightness(0.86); }
+
+/* Immeuble : rez-de-chaussée marine + étages de fenêtres */
+.s3-bld.apt .s3-wall.front, .s3-bld.apt .s3-wall.back {
+  background-image:
+    linear-gradient(var(--primary), var(--primary)),
+    linear-gradient(#0b1e3b, #0b1e3b),
+    repeating-linear-gradient(0deg, var(--c) 0 11px, transparent 11px 28px),
+    repeating-linear-gradient(90deg, transparent 0 8px, #9dbbe6 8px 20px, transparent 20px 28px);
+  background-repeat: no-repeat, no-repeat, repeat, repeat;
+  background-size: 18px 20px, 100% 24px, auto, auto;
+  background-position: left calc(var(--w) * 0.5 - 9px) bottom 0, left bottom, 0 0, 0 0;
+}
+.s3-bld.apt .s3-wall.right {
+  background-image:
+    linear-gradient(#0b1e3b, #0b1e3b),
+    repeating-linear-gradient(270deg, var(--c) 0 11px, transparent 11px 28px),
+    repeating-linear-gradient(0deg, transparent 0 8px, #9dbbe6 8px 20px, transparent 20px 28px);
+  background-repeat: no-repeat, repeat, repeat;
+  background-size: 24px 100%, auto, auto; background-position: right top, 0 0, 0 0;
+}
+.s3-bld.apt .s3-wall.left {
+  background-image:
+    linear-gradient(#0b1e3b, #0b1e3b),
+    repeating-linear-gradient(90deg, var(--c) 0 11px, transparent 11px 28px),
+    repeating-linear-gradient(0deg, transparent 0 8px, #9dbbe6 8px 20px, transparent 20px 28px);
+  background-repeat: no-repeat, repeat, repeat;
+  background-size: 24px 100%, auto, auto; background-position: left top, 0 0, 0 0;
+}
+.s3-top {
+  inset: 0; background: #cbd5e1; border: 3px solid var(--primary);
+  animation: s3-gt 1.8s cubic-bezier(0.2, 0.9, 0.2, 1) var(--delay) forwards;
+}
+.s3-top::after {
+  content: ''; position: absolute; left: 20%; top: 25%; width: 32%; height: 32%;
+  background: #0b1e3b; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
+}
+@keyframes s3-gt {
+  from { transform: translateZ(0); }
+  to   { transform: translateZ(var(--h)); }
+}
+
+/* Poussière au pied */
+.s3-dust {
+  inset: -10px; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.7); opacity: 0;
+  animation: s3-dust 1.4s ease-out var(--delay) forwards;
+}
+@keyframes s3-dust {
+  0%   { opacity: 0.9; transform: scale(0.4); }
+  100% { opacity: 0;   transform: scale(1.6); }
+}
+
+/* ---------- Arbres (verts de la plateforme) ---------- */
+.s3-tree { position: absolute; width: 0; height: 0; transform-style: preserve-3d; }
+.s3-tshadow {
+  position: absolute; left: -14px; top: -6px; width: 28px; height: 14px;
+  border-radius: 50%; background: rgba(0, 0, 0, 0.3); transform: translateZ(2px);
+}
+.s3-tcrown {
+  position: absolute; left: -14px; bottom: 0; width: 28px; height: 42px;
+  transform-origin: 50% 100%;
+  transform: rotateZ(34deg) rotateX(-58deg) scale(0);
+  background:
+    radial-gradient(circle at 50% 36%, #34d399 0 11px, #10b981 13px, transparent 14px),
+    linear-gradient(#5b4636, #5b4636) 50% 100% / 4px 16px no-repeat;
+  animation: s3-pop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) var(--td) forwards;
+}
+@keyframes s3-pop { to { transform: rotateZ(34deg) rotateX(-58deg) scale(1); } }
+
+/* ---------- Voitures ---------- */
+.s3-car {
+  position: absolute; left: 0; top: 0; border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4); opacity: 0;
+}
+.s3-car.h {
+  width: 24px; height: 12px;
+  background: linear-gradient(90deg, transparent 26%, rgba(11, 30, 59, 0.8) 26% 70%, transparent 70%), var(--cc);
+  animation: s3-dh 9s linear infinite backwards;
+}
+.s3-car.v {
+  width: 12px; height: 24px;
+  background: linear-gradient(180deg, transparent 26%, rgba(11, 30, 59, 0.8) 26% 70%, transparent 70%), var(--cc);
+  animation: s3-dv 10s linear infinite backwards;
+}
+.s3-car.h { left: 0; }
+.s3-car.v { top: 0; }
+@keyframes s3-dh {
+  0%   { opacity: 0; transform: translate3d(-60px, 0, 3px); }
+  5%, 95% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(620px, 0, 3px); }
+}
+@keyframes s3-dv {
+  0%   { opacity: 0; transform: translate3d(0, -60px, 3px); }
+  5%, 95% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(0, 620px, 3px); }
+}
+
+/* ---------- Tailles d'écran / accessibilité ---------- */
+@media (max-width: 1280px) { .s3-stage { --s: 0.82; } }
+@media (max-width: 1050px) { .s3-stage { --s: 0.66; } }
+@media (max-height: 760px) { .s3-stage { --s: 0.8; } }
+@media (prefers-reduced-motion: reduce) {
+  .s3-world, .s3-wall, .s3-top, .s3-roof, .s3-dust, .s3-tcrown, .s3-car { animation-duration: 0.01s; animation-delay: 0s; }
+  .s3-tcrown { transform: rotateZ(34deg) rotateX(-58deg) scale(1); }
+}

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Home, FileText, CreditCard, Scale } from 'lucide-react'
+import { Home, FileText, CreditCard, Scale, BarChart3, PieChart as PieIcon, LineChart as LineIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getLocations } from '../../api/paiementApi.js'
 import { getContrats } from '../../api/contratApi.js'
 import { formatAr, formatMois, label } from '../../utils/format.js'
+import { Bar, PieChart, LineChart } from './Charts.jsx'
 
 export default function LocataireDashboard() {
   const [locations, setLocations] = useState([])
@@ -52,6 +53,34 @@ export default function LocataireDashboard() {
             <div className="stat-value">{prochaineEcheance.filter((l) => l.paye).length}/{prochaineEcheance.length}</div>
             <div className="stat-label">Mois en cours payé</div>
           </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2><BarChart3 size={15} /> Aperçu</h2>
+        <Bar label="Locations actives" value={locations.filter((l) => l.statut === 'actif').length} max={Math.max(locations.length, 1)} color="#3b82f6" />
+        <Bar label="Contrats" value={contrats.length} max={Math.max(contrats.length, locations.length, 1)} color="#4f46e5" />
+        <Bar label="Mois en cours payés" value={prochaineEcheance.filter((l) => l.paye).length} max={Math.max(prochaineEcheance.length, 1)} color="#10b981" />
+        <Bar label="Mois en cours à payer" value={prochaineEcheance.filter((l) => !l.paye).length} max={Math.max(prochaineEcheance.length, 1)} color="#ef4444" />
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="card">
+          <h2><PieIcon size={15} /> Répartition</h2>
+          <PieChart
+            data={[
+              { label: 'Payés', value: prochaineEcheance.filter((l) => l.paye).length, color: '#10b981' },
+              { label: 'À payer', value: prochaineEcheance.filter((l) => !l.paye).length, color: '#ef4444' },
+            ]}
+          />
+        </div>
+        <div className="card">
+          <h2><LineIcon size={15} /> Tendance</h2>
+          <LineChart
+            values={[locations.filter((l) => l.statut === 'actif').length, contrats.length, prochaineEcheance.filter((l) => l.paye).length]}
+            labels={['Locations', 'Contrats', 'Payés']}
+            color="#4f46e5"
+          />
         </div>
       </div>
 

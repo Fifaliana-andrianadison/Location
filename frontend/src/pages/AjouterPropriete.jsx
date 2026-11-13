@@ -38,6 +38,19 @@ export default function AjouterPropriete() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [mapLink, setMapLink] = useState('')
+
+  const extractCoords = (url) => {
+    if (!url) return null
+    const m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
+    if (m) return { lat: m[1], lng: m[2] }
+    const m2 = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/)
+    if (m2) return { lat: m2[1], lng: m2[2] }
+    return null
+  }
+
+  const coords = extractCoords(mapLink) || (form.latitude && form.longitude ? { lat: form.latitude, lng: form.longitude } : null)
+  const mapQuery = coords ? `${coords.lat},${coords.lng}` : [form.quartier, form.ville].filter(Boolean).join(' ')
 
   useEffect(() => {
     if (!editId) return
@@ -180,14 +193,39 @@ export default function AjouterPropriete() {
             <label>Région</label>
             <input value={form.region} onChange={set('region')} placeholder="Analamanga" />
           </div>
-          <div className="form-row">
-            <label>Latitude</label>
-            <input type="number" step="any" value={form.latitude} onChange={set('latitude')} placeholder="-18.8791902" />
-          </div>
-          <div className="form-row">
-            <label>Longitude</label>
-            <input type="number" step="any" value={form.longitude} onChange={set('longitude')} placeholder="47.5079055" />
-          </div>
+          {form.quartier.trim() && (
+            <div className="form-row full">
+              <label>Lien Google Maps de votre lieu (optionnel)</label>
+              <input
+                value={mapLink}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setMapLink(v)
+                  const c = extractCoords(v)
+                  if (c) {
+                    setForm((f) => ({ ...f, latitude: c.lat, longitude: c.lng }))
+                  } else if (!v.trim()) {
+                    setForm((f) => ({ ...f, latitude: '', longitude: '' }))
+                  }
+                }}
+                placeholder="Collez le lien Google Maps (clic droit → Copier le lien)"
+              />
+              <span className="muted" style={{ fontSize: '0.7rem' }}>
+                Ajoutez le lien du map de votre lieu : la carte du quartier se mettra à jour. Sinon, la carte se réinitialise.
+              </span>
+            </div>
+          )}
+          {form.quartier.trim() && (
+            <div className="form-row full">
+              <label>Carte du quartier</label>
+              <iframe
+                title="map"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                style={{ width: '100%', height: 260, border: 0, borderRadius: 12 }}
+                loading="lazy"
+              />
+            </div>
+          )}
         </div>
 
         {form.type && (
@@ -249,6 +287,9 @@ export default function AjouterPropriete() {
           <p>Cliquez pour choisir des photos (JPG, PNG — 10 max)</p>
           <input id="img-input" type="file" accept="image/*" multiple className="hidden-file" onChange={addImages} />
         </div>
+        <p className="muted" style={{ fontSize: '0.78rem', marginTop: '0.5rem' }}>
+          Si vous n'ajoutez aucune photo, des photos Pexels correspondant à la description du bien seront automatiquement proposées.
+        </p>
         {anciennesImages.length > 0 && (
           <div className="preview-grid">
             {anciennesImages.map((img) => (

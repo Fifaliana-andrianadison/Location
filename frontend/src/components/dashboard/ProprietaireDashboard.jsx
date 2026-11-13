@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Building2, Globe, Clock, Home, Users, Wallet, AlertTriangle, FileText } from 'lucide-react'
+import { Building2, Globe, Clock, Home, Users, Wallet, AlertTriangle, FileText, BarChart3, PieChart as PieIcon, LineChart as LineIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getStatsProprietaire } from '../../api/proprieteApi.js'
 import { getCandidatures } from '../../api/candidatureApi.js'
 import { formatAr } from '../../utils/format.js'
+import { Bar, PieChart, LineChart } from './Charts.jsx'
 
 export default function ProprietaireDashboard() {
   const [stats, setStats] = useState(null)
@@ -87,6 +88,47 @@ export default function ProprietaireDashboard() {
             <div className="stat-value">{stats.candidatures_en_attente}</div>
             <div className="stat-label">Candidatures en attente</div>
           </div>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="card">
+          <h2><BarChart3 size={15} /> Biens & annonces</h2>
+          <Bar label="Propriétés totales" value={stats.proprietes.total} max={Math.max(stats.proprietes.total, 1)} color="#4f46e5" />
+          <Bar label="Annonces en ligne" value={stats.proprietes.annonces_en_ligne} max={Math.max(stats.proprietes.total, 1)} color="#10b981" />
+          <Bar label="En attente de validation" value={stats.proprietes.en_attente} max={Math.max(stats.proprietes.total, 1)} color="#f59e0b" />
+          <Bar label="Locations actives" value={stats.locations.actives} max={Math.max(stats.proprietes.total, 1)} color="#3b82f6" />
+        </div>
+        <div className="card">
+          <h2><Wallet size={15} /> Finances</h2>
+          <Bar label="Revenus confirmés" value={stats.finances.revenus_total} max={Math.max(stats.finances.revenus_total + stats.finances.impayes, 1)} color="#10b981" />
+          <Bar label="Impayés estimés" value={stats.finances.impayes} max={Math.max(stats.finances.revenus_total + stats.finances.impayes, 1)} color="#ef4444" />
+          <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
+            Taux de recouvrement : {stats.finances.revenus_total + stats.finances.impayes > 0
+              ? Math.round((stats.finances.revenus_total / (stats.finances.revenus_total + stats.finances.impayes)) * 100)
+              : 0}%
+          </div>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="card">
+          <h2><PieIcon size={15} /> Répartition des biens</h2>
+          <PieChart
+            data={[
+              { label: 'Annonces en ligne', value: stats.proprietes.annonces_en_ligne, color: '#10b981' },
+              { label: 'En attente', value: stats.proprietes.en_attente, color: '#f59e0b' },
+              { label: 'Autres', value: Math.max(stats.proprietes.total - stats.proprietes.annonces_en_ligne - stats.proprietes.en_attente, 0), color: '#94a3b8' },
+            ]}
+          />
+        </div>
+        <div className="card">
+          <h2><LineIcon size={15} /> Tendance financière</h2>
+          <LineChart
+            values={[stats.finances.impayes, stats.finances.revenus_total]}
+            labels={['Impayés', 'Revenus']}
+            color="#4f46e5"
+          />
         </div>
       </div>
 

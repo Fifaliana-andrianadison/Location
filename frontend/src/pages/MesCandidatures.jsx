@@ -3,7 +3,7 @@ import { FileText, Check, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getCandidatures, updateCandidature } from '../api/candidatureApi.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { assetUrl, formatAr, formatDate, label } from '../utils/format.js'
+import { assetUrl, formatAr, formatDate, label, annonceImage } from '../utils/format.js'
 
 export default function MesCandidatures() {
   const { user } = useAuth()
@@ -57,11 +57,7 @@ export default function MesCandidatures() {
           {candidatures.map((c) => (
             <div key={c.id} className="card candidature-card">
               <div className="cand-head">
-                {c.annonce?.image_principale ? (
-                  <img src={assetUrl(c.annonce.image_principale)} alt="" />
-                ) : (
-                  <span className="avatar">{jeSuisProprietaire ? c.locataire?.name?.charAt(0) : '?'}</span>
-                )}
+                <img src={c.annonce ? annonceImage(c.annonce) : assetUrl(null, null, c.id)} alt="" loading="lazy" />
                 <div>
                   <Link to={`/annonces/${c.annonce?.id}`}><strong>{c.annonce?.titre || 'Annonce'}</strong></Link>
                   <p className="muted">

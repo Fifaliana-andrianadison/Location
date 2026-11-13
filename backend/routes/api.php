@@ -100,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('messages/conversations', [MessageController::class, 'conversations']);
     Route::get('messages', [MessageController::class, 'index']);
     Route::post('messages', [MessageController::class, 'store']);
+    Route::post('messages/{message}/react', [MessageController::class, 'react']);
 
     /*
     | Notifications

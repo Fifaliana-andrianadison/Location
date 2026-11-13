@@ -40,7 +40,8 @@ class RechercheBudgetService
         }
 
         if (! empty($filters['ville'])) {
-            $query->whereHas('localisation', fn ($q) => $q->where('ville', 'like', "%{$filters['ville']}%"));
+            $query->whereHas('localisation', fn ($q) => $q->where('ville', 'like', "%{$filters['ville']}%")
+                ->orWhere('quartier', 'like', "%{$filters['ville']}%"));
         }
 
         if (! empty($filters['quartier'])) {

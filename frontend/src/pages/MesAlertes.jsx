@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import { Bell, Plus, Trash2, Power } from 'lucide-react'
 import { getAlertes, createAlerte, updateAlerte, deleteAlerte } from '../api/alerteApi.js'
 import { formatAr, TYPE_LABELS, MODE_LABELS } from '../utils/format.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 const VIDES = { budget_min: '', budget_max: '', type: '', mode: '', ville: '', quartier: '' }
 
 export default function MesAlertes() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [alertes, setAlertes] = useState([])
   const [form, setForm] = useState(VIDES)
   const [busy, setBusy] = useState(false)
@@ -58,8 +61,9 @@ export default function MesAlertes() {
   return (
     <div className="page">
       <h1 className="page">Mes alertes de recherche</h1>
-      <form className="card" onSubmit={submit}>
-        <h2><Bell size={16} /> Créer une alerte</h2>
+      {isAdmin ? (
+        <form className="card" onSubmit={submit}>
+          <h2><Bell size={16} /> Créer une alerte</h2>
         <div className="form-grid">
           <div className="form-row">
             <label>Budget min (Ar)</label>
@@ -101,6 +105,9 @@ export default function MesAlertes() {
           <button className="btn" disabled={busy}><Plus size={15} /> {busy ? 'Création…' : "Créer l'alerte"}</button>
         </div>
       </form>
+      ) : (
+        <div className="card empty">Seul l'administrateur peut créer des alertes.</div>
+      )}
 
       {alertes.length > 0 ? (
         <div className="grid">

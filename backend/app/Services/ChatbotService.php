@@ -21,7 +21,7 @@ class ChatbotService
         $key = (string) env('CHATBOT_API_KEY', '');
 
         if ($key === '') {
-            return null; // aucun fournisseur configuré → l'assistant local prend le relais
+            return $this->localFallback($message);
         }
 
         try {
@@ -40,15 +40,52 @@ class ChatbotService
                 ]);
 
             if (! $response->successful()) {
-                return null;
+                return $this->localFallback($message);
             }
 
             $content = $response->json('choices.0.message.content');
 
-            return is_string($content) && trim($content) !== '' ? trim($content) : null;
+            return is_string($content) && trim($content) !== '' ? trim($content) : $this->localFallback($message);
         } catch (Throwable) {
-            return null;
+            return $this->localFallback($message);
         }
+    }
+
+    /**
+     * Assistant local à base de règles (utilisé sans clé API ou en cas d'échec).
+     */
+    protected function localFallback(string $message): string
+    {
+        $m = strtolower(trim($message));
+
+        $regles = [
+            '/(bonjour|salut|hello|bonsoir|hey|misaotra)/' =>
+                'Salama ! 👋 Je suis l’assistant de Tany & Toerana. Je peux vous aider à rechercher un bien, vous inscrire ou comprendre les paiements. Que souhaitez-vous savoir ?',
+            '/(budget|loyer|prix|tarif|co(u|û)t)/' =>
+                '💡 Sur « Rechercher un bien », indiquez votre budget min./max., le type de bien et la ville : les annonces s’adaptent automatiquement à votre budget. Connecté(e), vous pouvez aussi créer une alerte.',
+            '/(maison|appartement|terrain|studio|bungalow|villa|bureau)/' =>
+                '🏠 Nous proposons terrains, maisons/villas, appartements et studios. Utilisez le filtre « Type de bien » et votre budget sur la page de recherche pour voir ce qui existe dans votre ville.',
+            '/(mvola|orange|airtel|money|paiement|payer)/' =>
+                '💰 Le loyer se paie en ligne via Mvola, Orange Money ou Airtel Money. Depuis « Mes paiements », choisissez le contrat, le montant et validez : le reçu est enregistré automatiquement.',
+            '/(inscri|compte|candidat|register)/' =>
+                '📝 L’inscription est gratuite et prend moins d’une minute : cliquez sur « Créer un compte », choisissez locataire ou propriétaire et remplissez le formulaire. Vous pourrez ensuite candidater et recevoir des alertes.',
+            '/(contact|proprietaire|joindre|message|appeler|telephone)/' =>
+                '📞 Chaque annonce a un bouton « Contacter le propriétaire » qui ouvre la messagerie interne. Connectez-vous pour envoyer votre premier message.',
+            '/(recherche|trouver|cherche|location|louer|acheter)/' =>
+                '🔎 Rendez-vous sur « Rechercher un bien » : budget, type de bien, ville, puis « Rechercher ». Vous pouvez affiner avec les filtres (pièces, surface, géolocalisation).',
+            '/(contrat|bail|signature|signer)/' =>
+                '📄 Après acceptation de votre candidature, le contrat de bail est généré en PDF. La signature électronique se fait des deux côtés depuis « Mes contrats ».',
+            '/(merci|misaotra)/' =>
+                'Avec plaisir ! 🙏 N’hésitez pas si vous avez d’autres questions.',
+        ];
+
+        foreach ($regles as $pattern => $reponse) {
+            if (preg_match($pattern, $m) === 1) {
+                return $reponse;
+            }
+        }
+
+        return '🤔 Je n’ai pas bien compris. Essayez : « Comment rechercher un bien ? », « Comment payer le loyer ? » ou « Créer un compte ».';
     }
 
     protected function systemPrompt(): string

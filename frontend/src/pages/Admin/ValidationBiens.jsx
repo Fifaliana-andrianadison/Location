@@ -123,11 +123,7 @@ export default function ValidationBiens() {
             <div className="grid prop-grid">
               {proprietes.map((p) => (
                 <div key={p.id} className="card prop-card">
-                  {p.images?.[0] ? (
-                    <img className="prop-img" src={assetUrl(p.images[0].path)} alt={p.titre} />
-                  ) : (
-                    <div className="prop-img-empty">Aucune photo</div>
-                  )}
+                  <img className="prop-img" src={assetUrl(p.images?.[0]?.path, p.type, p.id)} alt={p.titre} loading="lazy" />
                   <div className="prop-body">
                     <div className="prop-badges">
                       <span className="badge badge-indigo">{TYPE_LABELS[p.type]}</span>

@@ -23,7 +23,19 @@ class MessageController extends Controller
             ->merge(Message::where('sender_id', $user->id)
                 ->orWhere('receiver_id', $user->id)
                 ->pluck('receiver_id'))
-            ->filter(fn ($id) => (int) $id !== $user->id)
+            ->filter(fn ($id) => (int) $id !== $user->id);
+
+        // Contacts par défaut selon le rôle
+        if ($user->isAdmin()) {
+            $ids = $ids->merge(\App\Models\User::where('role', \App\Models\User::ROLE_PROPRIETAIRE)->pluck('id'));
+        } elseif ($user->isProprietaire()) {
+            $ids = $ids->merge(\App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->pluck('id'));
+            $ids = $ids->merge(\App\Models\User::where('role', \App\Models\User::ROLE_LOCATAIRE)->pluck('id'));
+        } else {
+            $ids = $ids->merge(\App\Models\User::where('role', \App\Models\User::ROLE_PROPRIETAIRE)->pluck('id'));
+        }
+
+        $ids = $ids->filter(fn ($id) => (int) $id !== $user->id)
             ->unique()
             ->values();
 
@@ -79,13 +91,52 @@ class MessageController extends Controller
 
     public function store(StoreMessageRequest $request): JsonResponse
     {
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')->store('messages', 'public');
+        }
+
+        $contenu = $request->contenu;
+        if ($contenu === null && $attachmentPath === null) {
+            return response()->json(['message' => 'Message ou fichier requis.'], 422);
+        }
+
         $message = Message::create([
             'sender_id' => $request->user()->id,
             'receiver_id' => $request->receiver_id,
             'location_id' => $request->location_id,
-            'contenu' => $request->contenu,
+            'contenu' => $contenu ?? '',
+            'attachment' => $attachmentPath,
         ]);
 
         return response()->json($message->load(['sender', 'receiver']), 201);
+    }
+
+    public function react(Request $request, Message $message): JsonResponse
+    {
+        $user = $request->user();
+        if ($message->sender_id !== $user->id && $message->receiver_id !== $user->id) {
+            return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+
+        $request->validate(['emoji' => 'required|string|max:8']);
+        $emoji = $request->emoji;
+        $reactions = $message->reactions ?? [];
+
+        // toggle reaction for this user
+        $found = false;
+        foreach ($reactions as $i => $r) {
+            if (($r['user_id'] ?? null) === $user->id && ($r['emoji'] ?? null) === $emoji) {
+                unset($reactions[$i]);
+                $found = true;
+                break;
+            }
+        }
+        if (! $found) {
+            $reactions[] = ['user_id' => $user->id, 'emoji' => $emoji];
+        }
+        $message->update(['reactions' => array_values($reactions)]);
+
+        return response()->json($message->load(['sender', 'receiver']));
     }
 }

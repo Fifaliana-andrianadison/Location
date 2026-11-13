@@ -19,6 +19,10 @@ class AlerteRechercheController extends Controller
 
     public function store(StoreAlerteRequest $request): JsonResponse
     {
+        if (! $request->user()?->isAdmin()) {
+            return response()->json(['message' => 'Seul l’administrateur peut créer des alertes.'], 403);
+        }
+
         $alerte = AlerteRecherche::create(
             $request->validated() + ['user_id' => $request->user()->id]
         );
