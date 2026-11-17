@@ -34,7 +34,7 @@ class CandidatureController extends Controller
             $query->where('statut', $request->statut);
         }
 
-        return $this->paginated($query->paginate(12), CandidatureResource::class);
+        return $this->paginated($query->paginate(min(max((int) $request->input('per_page', 12), 1), 100)), CandidatureResource::class);
     }
 
     /**

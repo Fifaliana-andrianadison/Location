@@ -20,6 +20,7 @@ class StoreContratRequest extends FormRequest
             'date_fin' => 'required|date|after:date_debut',
             'loyer_mensuel' => 'required|numeric|min:0',
             'caution' => 'nullable|numeric|min:0',
+            'conditions' => 'nullable|string|max:5000',
         ];
     }
 }

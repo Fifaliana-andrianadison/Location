@@ -5,3 +5,4 @@ export const getValidations = (params = {}) => client.get('/admin/validations', 
 export const validerPropriete = (id) => client.post(`/admin/validations/${id}/valider`)
 export const rejeterPropriete = (id, motif) => client.post(`/admin/validations/${id}/rejeter`, { motif })
 export const verifierProprietaire = (userId, action) => client.post(`/admin/proprietaires/${userId}/verifier`, { action })
+export const getProprietaires = (params = {}) => client.get('/admin/proprietaires', { params })

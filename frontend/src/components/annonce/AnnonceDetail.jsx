@@ -108,7 +108,7 @@ export default function AnnonceDetail({ annonce, isFavori, onToggleFavori }) {
 
         <div className="card">
           <h2>Localisation</h2>
-          <MapView latitude={loc?.latitude} longitude={loc?.longitude} />
+          <MapView latitude={loc?.latitude} longitude={loc?.longitude} localisation={loc} />
         </div>
 
         <div className="card">

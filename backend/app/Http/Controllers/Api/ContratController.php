@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreContratRequest;
 use App\Http\Requests\SignContratRequest;
+use App\Http\Requests\UpdateContratRequest;
 use App\Http\Resources\ContratResource;
 use App\Models\ContratBail;
 use App\Models\Location;
@@ -36,7 +37,13 @@ class ContratController extends Controller
             $query->where('locataire_id', $user->id);
         }
 
-        return $this->paginated($query->paginate(12), ContratResource::class);
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 12), 1), 100);
+
+        return $this->paginated($query->paginate($perPage), ContratResource::class);
     }
 
     public function store(StoreContratRequest $request): JsonResponse
@@ -70,11 +77,12 @@ class ContratController extends Controller
             'date_fin' => $request->date_fin,
             'loyer_mensuel' => $request->loyer_mensuel,
             'caution' => $request->caution ?? 0,
+            'conditions' => $request->conditions,
             'statut' => ContratBail::STATUT_EN_ATTENTE,
         ]);
 
         // Génération du PDF du contrat.
-        $contrat->update(['pdf_path' => $this->pdf->generer($contrat)]);
+        $this->regenererPdf($contrat);
 
         $this->notifications->envoyer(
             $contrat->locataire,
@@ -94,6 +102,73 @@ class ContratController extends Controller
         }
 
         return response()->json(new ContratResource($contrat->load(['annonce', 'proprietaire', 'locataire'])));
+    }
+
+    /**
+     * Modification d'un contrat par le propriétaire tant qu'il n'est pas entièrement signé.
+     * Toute modification annule les signatures déjà apposées : les deux parties doivent re-signer.
+     */
+    public function update(UpdateContratRequest $request, ContratBail $contrat): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($contrat->proprietaire_id !== $user->id && ! $user->isAdmin()) {
+            return response()->json(['message' => 'Seul le propriétaire peut modifier ce contrat.'], 403);
+        }
+
+        if (! $contrat->estModifiable()) {
+            return response()->json(['message' => 'Un contrat signé ne peut plus être modifié.'], 422);
+        }
+
+        $data = $request->validated();
+
+        if (isset($data['locataire_id'])) {
+            $locataire = \App\Models\User::find($data['locataire_id']);
+            if (! $locataire || ! $locataire->isLocataire()) {
+                return response()->json(['message' => 'Le destinataire doit être un locataire.'], 422);
+            }
+        }
+
+        $contrat->fill($data);
+        $contrat->fill([
+            'signature_proprietaire' => null,
+            'signature_locataire' => null,
+            'statut' => ContratBail::STATUT_EN_ATTENTE,
+        ]);
+        $contrat->save();
+
+        $this->regenererPdf($contrat);
+
+        $this->notifications->envoyer(
+            $contrat->locataire,
+            \App\Models\Notification::TYPE_CONTRAT,
+            'Contrat de bail modifié',
+            "Le contrat #{$contrat->id} a été modifié. Merci de le relire et de le signer à nouveau.",
+            '/mes-contrats'
+        );
+
+        return response()->json(new ContratResource($contrat->load(['annonce', 'proprietaire', 'locataire'])));
+    }
+
+    public function destroy(Request $request, ContratBail $contrat): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($contrat->proprietaire_id !== $user->id && ! $user->isAdmin()) {
+            return response()->json(['message' => 'Seul le propriétaire peut supprimer ce contrat.'], 403);
+        }
+
+        if (! $contrat->estModifiable()) {
+            return response()->json(['message' => 'Un contrat signé ne peut pas être supprimé.'], 422);
+        }
+
+        if ($contrat->pdf_path) {
+            Storage::disk('public')->delete($contrat->pdf_path);
+        }
+
+        $contrat->delete();
+
+        return response()->json(['message' => 'Contrat supprimé.']);
     }
 
     /**
@@ -123,6 +198,18 @@ class ContratController extends Controller
 
         $contrat->refresh();
 
+        // Notifie l'autre partie que c'est à son tour de signer.
+        $autre = $contrat->proprietaire_id === $user->id ? $contrat->locataire : $contrat->proprietaire;
+        if ($autre && ! ($contrat->signature_proprietaire && $contrat->signature_locataire)) {
+            $this->notifications->envoyer(
+                $autre,
+                \App\Models\Notification::TYPE_CONTRAT,
+                'Contrat signé par '.$user->name,
+                "{$user->name} a signé le contrat #{$contrat->id}. C'est à votre tour.",
+                '/mes-contrats'
+            );
+        }
+
         if ($contrat->signature_proprietaire && $contrat->signature_locataire) {
             $contrat->update(['statut' => ContratBail::STATUT_SIGNE]);
 
@@ -145,6 +232,9 @@ class ContratController extends Controller
             }
         }
 
+        // Le PDF reflète toujours l'état courant des signatures.
+        $this->regenererPdf($contrat);
+
         return response()->json(new ContratResource($contrat->load(['annonce', 'proprietaire', 'locataire'])));
     }
 
@@ -157,6 +247,17 @@ class ContratController extends Controller
         return response()->json([
             'url' => Storage::disk('public')->url($contrat->pdf_path),
         ]);
+    }
+
+    private function regenererPdf(ContratBail $contrat): void
+    {
+        $ancien = $contrat->pdf_path;
+        $contrat->load(['annonce.localisation', 'proprietaire', 'locataire']);
+        $contrat->update(['pdf_path' => $this->pdf->generer($contrat)]);
+
+        if ($ancien && $ancien !== $contrat->pdf_path) {
+            Storage::disk('public')->delete($ancien);
+        }
     }
 
     private function canAccess(Request $request, ContratBail $contrat): bool

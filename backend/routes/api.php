@@ -71,7 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
     /*
     | Contrats de bail + signature électronique + PDF
     */
-    Route::apiResource('contrats', ContratController::class)->only(['index', 'store', 'show']);
+    Route::apiResource('contrats', ContratController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
     Route::post('contrats/{contrat}/signer', [ContratController::class, 'signer']);
     Route::get('contrats/{contrat}/pdf', [ContratController::class, 'pdf']);
 
@@ -145,6 +145,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('validations', [ValidationController::class, 'index']);
     Route::post('validations/{propriete}/valider', [ValidationController::class, 'valider']);
     Route::post('validations/{propriete}/rejeter', [ValidationController::class, 'rejeter']);
+    Route::get('proprietaires', [ValidationController::class, 'proprietaires']);
     Route::post('proprietaires/{user}/verifier', [ValidationController::class, 'verifierProprietaire']);
 
     Route::get('statistiques', [StatistiqueController::class, 'index']);

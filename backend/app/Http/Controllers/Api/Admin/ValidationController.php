@@ -71,11 +71,50 @@ class ValidationController extends Controller
     }
 
     /**
+     * Liste de tous les propriétaires (avec ou sans annonce) pour la vérification d'identité.
+     */
+    public function proprietaires(Request $request): JsonResponse
+    {
+        $query = User::query()
+            ->where('role', User::ROLE_PROPRIETAIRE)
+            ->withCount('proprietes')
+            ->latest();
+
+        if ($request->filled('statut')) {
+            $query->where('verification_status', $request->statut);
+        }
+
+        if ($request->filled('q')) {
+            $q = '%'.$request->q.'%';
+            $query->where(fn ($w) => $w->where('name', 'like', $q)->orWhere('email', 'like', $q)->orWhere('telephone', 'like', $q));
+        }
+
+        $data = $query->get()->map(fn (User $u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'email' => $u->email,
+            'telephone' => $u->telephone,
+            'photo' => $u->photo,
+            'document_path' => $u->document_path,
+            'verification_status' => $u->verification_status ?? 'en_attente',
+            'document_verifie' => (bool) $u->document_verifie,
+            'nb_proprietes' => $u->proprietes_count,
+            'created_at' => $u->created_at,
+        ]);
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
      * Vérification de l'identité d'un propriétaire.
      */
     public function verifierProprietaire(Request $request, User $user): JsonResponse
     {
         $request->validate(['action' => 'required|in:valider,rejeter']);
+
+        if (! $user->isProprietaire()) {
+            return response()->json(['message' => "Cet utilisateur n'est pas un propriétaire."], 422);
+        }
 
         $user->update([
             'verification_status' => $request->action === 'valider' ? 'verifiee' : 'rejetee',

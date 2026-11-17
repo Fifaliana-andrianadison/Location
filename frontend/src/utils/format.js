@@ -7,8 +7,11 @@ export function assetUrl(path, type = null, seed = 0) {
     if (type) return fallbackFor(type, seed)
     return FALLBACK_ALL[Math.abs(Number(seed) || 0) % FALLBACK_ALL.length]
   }
-  if (/^https?:\/\//i.test(path)) return path
-  return `${API_URL}${path.startsWith('/') ? path : `/${path}`}`
+  if (/^(https?:|data:|blob:)/i.test(path)) return path
+  let clean = String(path).replace(/\\/g, '/').replace(/^\/+/, '')
+  // Les fichiers envoyés sont stockés sur le disque "public" de Laravel → servis sous /storage
+  if (!clean.startsWith('storage/')) clean = `storage/${clean}`
+  return `${API_URL}/${clean}`
 }
 
 /** Meilleure image d'une annonce, avec repli garanti (style seloger : toujours une photo). */

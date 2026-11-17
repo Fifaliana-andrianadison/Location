@@ -24,8 +24,14 @@ class ContratBail extends Model
     protected $fillable = [
         'annonce_id', 'proprietaire_id', 'locataire_id',
         'date_debut', 'date_fin', 'loyer_mensuel', 'caution',
-        'pdf_path', 'signature_proprietaire', 'signature_locataire', 'statut',
+        'pdf_path', 'signature_proprietaire', 'signature_locataire', 'statut', 'conditions',
     ];
+
+    /** Un contrat reste modifiable / supprimable tant qu'il n'est pas entièrement signé. */
+    public function estModifiable(): bool
+    {
+        return in_array($this->statut, [self::STATUT_BROUILLON, self::STATUT_EN_ATTENTE], true);
+    }
 
     protected function casts(): array
     {

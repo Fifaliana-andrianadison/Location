@@ -20,6 +20,12 @@ class AuthController extends Controller
             'password' => $request->password,
             'role' => $request->role,
             'telephone' => $request->telephone,
+            'photo' => $request->hasFile('photo')
+                ? '/storage/'.$request->file('photo')->store('users/photos', 'public')
+                : null,
+            'document_path' => $request->hasFile('document')
+                ? '/storage/'.$request->file('document')->store('users/documents', 'public')
+                : null,
         ]);
 
         $token = $user->createToken('auth')->plainTextToken;

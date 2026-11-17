@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Save, ImagePlus, X } from 'lucide-react'
 import { createPropriete, getPropriete, updatePropriete } from '../api/proprieteApi.js'
 import { assetUrl } from '../utils/format.js'
+import { compressImages } from '../utils/compressImage.js'
 
 const VIDES = {
   type: '',
@@ -42,15 +43,29 @@ export default function AjouterPropriete() {
 
   const extractCoords = (url) => {
     if (!url) return null
-    const m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)
-    if (m) return { lat: m[1], lng: m[2] }
-    const m2 = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/)
-    if (m2) return { lat: m2[1], lng: m2[2] }
+    const txt = decodeURIComponent(String(url)).trim()
+    const motifs = [
+      /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/, // position exacte du lieu (prioritaire)
+      /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/, // centre de la carte
+      /[?&](?:q|query|ll|center|destination)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+      /\/place\/(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+      /^(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)$/, // "-18.1443, 49.3958" saisi directement
+    ]
+    for (const re of motifs) {
+      const m = txt.match(re)
+      if (m) {
+        const lat = Number(m[1])
+        const lng = Number(m[2])
+        if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat: String(lat), lng: String(lng) }
+      }
+    }
     return null
   }
 
   const coords = extractCoords(mapLink) || (form.latitude && form.longitude ? { lat: form.latitude, lng: form.longitude } : null)
-  const mapQuery = coords ? `${coords.lat},${coords.lng}` : [form.quartier, form.ville].filter(Boolean).join(' ')
+  const mapQuery = coords
+    ? `${coords.lat},${coords.lng}`
+    : [form.adresse, form.quartier, form.ville, form.region, 'Madagascar'].filter((v) => v && v.trim()).join(', ')
 
   useEffect(() => {
     if (!editId) return
@@ -89,9 +104,12 @@ export default function AjouterPropriete() {
     setForm((f) => ({ ...f, [k]: v }))
   }
 
-  const addImages = (e) => {
-    setImages((prev) => [...prev, ...Array.from(e.target.files || [])].slice(0, 10))
+  const addImages = async (e) => {
+    const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'))
     e.target.value = ''
+    // Compression avant envoi : PHP refuse les fichiers > 2 Mo et les requêtes > 8 Mo.
+    const compressed = await compressImages(files)
+    setImages((prev) => [...prev, ...compressed].slice(0, 10))
   }
 
   const submit = async (e) => {
@@ -112,7 +130,9 @@ export default function AjouterPropriete() {
       }
       navigate('/mes-proprietes')
     } catch (err) {
-      setError(err.response?.data?.message || "Erreur lors de l'enregistrement de la propriété.")
+      const errs = err.response?.data?.errors
+      const first = errs ? Object.values(errs).flat()[0] : null
+      setError(first || err.response?.data?.message || "Erreur lors de l'enregistrement de la propriété.")
     } finally {
       setBusy(false)
     }
@@ -193,9 +213,9 @@ export default function AjouterPropriete() {
             <label>Région</label>
             <input value={form.region} onChange={set('region')} placeholder="Analamanga" />
           </div>
-          {form.quartier.trim() && (
+          {(form.quartier.trim() || form.ville.trim()) && (
             <div className="form-row full">
-              <label>Lien Google Maps de votre lieu (optionnel)</label>
+              <label>Lien Google Maps ou coordonnées GPS (optionnel)</label>
               <input
                 value={mapLink}
                 onChange={(e) => {
@@ -208,14 +228,25 @@ export default function AjouterPropriete() {
                     setForm((f) => ({ ...f, latitude: '', longitude: '' }))
                   }
                 }}
-                placeholder="Collez le lien Google Maps (clic droit → Copier le lien)"
+                placeholder="Lien Google Maps complet, ou coordonnées ex : -18.1443, 49.3958"
               />
-              <span className="muted" style={{ fontSize: '0.7rem' }}>
-                Ajoutez le lien du map de votre lieu : la carte du quartier se mettra à jour. Sinon, la carte se réinitialise.
-              </span>
+              {coords ? (
+                <span style={{ fontSize: '0.72rem', color: '#059669' }}>
+                  ✓ Position détectée : {Number(coords.lat).toFixed(5)}, {Number(coords.lng).toFixed(5)}
+                </span>
+              ) : mapLink.trim() ? (
+                <span style={{ fontSize: '0.72rem', color: '#b45309' }}>
+                  Aucune coordonnée trouvée dans ce lien (les liens courts « maps.app.goo.gl » n'en contiennent pas).
+                  Sur Google Maps, faites un clic droit sur le lieu puis cliquez sur les coordonnées pour les copier, et collez-les ici.
+                </span>
+              ) : (
+                <span className="muted" style={{ fontSize: '0.7rem' }}>
+                  Sans coordonnées, l'annonce affichera une carte approximative basée sur l'adresse.
+                </span>
+              )}
             </div>
           )}
-          {form.quartier.trim() && (
+          {(form.quartier.trim() || form.ville.trim()) && (
             <div className="form-row full">
               <label>Carte du quartier</label>
               <iframe

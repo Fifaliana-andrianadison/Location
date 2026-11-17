@@ -12,14 +12,18 @@ use App\Models\Localisation;
 use App\Models\Maison;
 use App\Models\Propriete;
 use App\Models\Terrain;
+use App\Models\Notification;
+use App\Services\NotificationService;
 use App\Services\PexelsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProprieteController extends Controller
 {
-    public function __construct(private PexelsService $pexels)
-    {
+    public function __construct(
+        private PexelsService $pexels,
+        private NotificationService $notifications,
+    ) {
     }
 
     /**
@@ -74,6 +78,11 @@ class ProprieteController extends Controller
 
         if ($propriete->images()->count() === 0) {
             $this->attachPexels($propriete, $data);
+        }
+
+        // Prévient les administrateurs qu'un nouveau bien attend leur validation.
+        if ($propriete->verification === Propriete::VERIF_EN_ATTENTE) {
+            $this->notifierAdminsNouveauBien($propriete, $request->user()->name, false);
         }
 
         return response()->json(new ProprieteResource($propriete->load(['maison', 'appartements', 'terrain', 'localisation', 'images'])), 201);
@@ -138,6 +147,12 @@ class ProprieteController extends Controller
 
         if ($request->hasFile('images')) {
             $this->storeImages($propriete, $request);
+        }
+
+        // Un bien rejeté puis corrigé par son propriétaire repart en validation.
+        if (! $request->user()->isAdmin() && $propriete->verification === Propriete::VERIF_REJETEE) {
+            $propriete->update(['verification' => Propriete::VERIF_EN_ATTENTE]);
+            $this->notifierAdminsNouveauBien($propriete, $request->user()->name, true);
         }
 
         $propriete->load(['localisation', 'images', 'maison', 'appartements', 'terrain']);
@@ -217,6 +232,24 @@ class ProprieteController extends Controller
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
             ]
+        );
+    }
+
+    private function notifierAdminsNouveauBien(Propriete $propriete, string $auteur, bool $resoumission): void
+    {
+        $ville = $propriete->localisation?->ville;
+
+        $this->notifications->notifierAdmins(
+            Notification::TYPE_SYSTEME,
+            $resoumission ? 'Bien corrigé à revalider' : 'Nouveau bien à valider',
+            sprintf(
+                '%s a %s « %s »%s. Il attend votre validation.',
+                $auteur,
+                $resoumission ? 'modifié son bien rejeté' : 'publié un nouveau bien',
+                $propriete->titre,
+                $ville ? " à {$ville}" : ''
+            ),
+            '/admin/validations'
         );
     }
 
